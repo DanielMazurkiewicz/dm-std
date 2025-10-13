@@ -1,8 +1,8 @@
-# dm-utils
+# dm-std
 
 A collection of zero-dependency, type-safe numeric and utility functions for TypeScript, inspired by lower-level programming language types.
 
-`dm-utils` provides predictable, fixed-size numeric types (`U8`, `U32`, `F64`), a powerful command-line argument parser, and a set of string and object helpers to streamline your development process. It's designed for building tools, simulations, and any environment where explicit data types and robust utilities are beneficial.
+`dm-std` provides predictable, fixed-size numeric types (`U8`, `U32`, `F64`), a powerful command-line argument parser, and a set of string and object helpers to streamline your development process. It's designed for building tools, simulations, and any environment where explicit data types and robust utilities are beneficial.
 
 ## Key Features
 
@@ -15,17 +15,17 @@ A collection of zero-dependency, type-safe numeric and utility functions for Typ
 
 ## Installation
 
-You can install `dm-utils` using your favorite package manager:
+You can install `dm-std` using your favorite package manager:
 
 ```bash
 # Bun
-bun add dm-utils
+bun add dm-std
 
 # NPM
-npm install dm-utils
+npm install dm-std
 
 # Yarn
-yarn add dm-utils
+yarn add dm-std
 ```
 
 ## Quick Cheat Sheet
@@ -33,7 +33,7 @@ yarn add dm-utils
 Here are the core concepts at a glance:
 
 ```typescript
-import { U8, U32, F64, CmdLine, Str, Char, Obj } from 'dm-utils';
+import { U8, U32, F64, CmdLine, Str, Char, Obj } from 'dm-std';
 
 // --- Numeric Types ---
 // Operations are clamped to the type's range.
@@ -73,7 +73,7 @@ const user = Obj.get(myObj, 'config.users[0]'); // => 'root'
 `CmdLine` makes it easy to create robust command-line interfaces. Let's define options for a file processing script.
 
 ```typescript
-import { CmdLine } from 'dm-utils';
+import { CmdLine } from 'dm-std';
 
 // 1. Define your command-line options
 const options: CmdLine.Option[] = [
@@ -146,7 +146,7 @@ if (typeof result === 'string') {
 Use `U8` to safely manipulate values that represent bytes, like RGB color components.
 
 ```typescript
-import { U8 } from 'dm-utils';
+import { U8 } from 'dm-std';
 
 // An RGB color
 let color = {
@@ -175,7 +175,7 @@ console.log('Darkened color:', color); // { r: ..., g: 0, b: 255 }
 Use `Str` and `Char` to quickly find tokens or split strings without the overhead of regular expressions.
 
 ```typescript
-import { Str, Char } from 'dm-utils';
+import { Str, Char } from 'dm-std';
 
 const configLine = " port = 8080 ; timeout=30000 ";
 const WHITESPACE = Char.createList(' \t\r\n');

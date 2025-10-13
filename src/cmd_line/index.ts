@@ -6,7 +6,7 @@ import { Obj } from '../obj';
 
 export namespace CmdLine {
     export const logGroup = Log.Group.create(
-        "dm-utils:CmdLing"
+        "dm-std:CmdLing"
     )
     export type Trigger = string
 
