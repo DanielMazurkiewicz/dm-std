@@ -1,0 +1,35 @@
+{
+  "name": "dm-utils",
+  "version": "0.1.0",
+  "description": "A collection of numeric and utility types and functions for TypeScript.",
+  "license": "MIT",
+  "author": "Daniel Mazurkiewicz",
+  "type": "module",
+
+  "scripts": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DanielMazurkiewicz/dm-utils.git"
+  },
+  "keywords": [
+    "typescript",
+    "utilities",
+    "types",
+    "u32",
+    "u8",
+    "f64",
+    "logs"
+  ],
+  "bugs": {
+    "url": "https://github.com/DanielMazurkiewicz/dm-utils/issues"
+  },
+  "homepage": "https://github.com/DanielMazurkiewicz/dm-utils#readme",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
