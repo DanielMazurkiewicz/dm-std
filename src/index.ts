@@ -3,8 +3,11 @@ export * from './types/date_time';
 export * from './types/f64';
 export * from './types/u32';
 export * from './types/u8';
+export * from './types/str';
+export * from './types/char';
+export * from './types/obj';
+
 export * from './log';
 export * from './cmd_line';
-export * from './obj';
-export * from './char';
-export * from './str';
+
+export * from './file_system';

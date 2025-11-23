@@ -1,0 +1,215 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import { Log } from '../log';
+import type { FileSystemOperations } from './models';
+
+class NodeFileSystemImpl implements FileSystemOperations {
+
+    constructor() {
+    }
+    async createDir(dirPath: string): Promise<void> {
+        try {
+            await fs.mkdir(dirPath, { recursive: true });
+            Log.push(`Successfully created directory: ${dirPath}`, Log.DEBUG);
+        } catch (error) {
+            Log.push(`Could not create directory ${dirPath}: ${String(error)}`, Log.ERROR);
+            throw error;
+        }
+    }
+
+    async readDir(dirPath: string): Promise<string[]> {
+        try {
+            const entries = await fs.readdir(dirPath);
+            return entries;
+        } catch (error) {
+            Log.push(`Could not read directory ${dirPath}: ${String(error)}`);
+            throw error;
+        }
+    }
+
+    async readFile(filePath: string): Promise<Buffer> {
+        try {
+            const data = await fs.readFile(filePath);
+            Log.push(`Successfully read file: ${filePath}`, Log.DEBUG);
+            return data;
+        } catch (error) {
+            Log.push(`Could not read file ${filePath}: ${String(error)}`);
+            throw error;
+        }
+    }
+
+    async writeFile(filePath: string, data: Buffer): Promise<boolean> {
+        try {
+            // Ensure directory exists
+            await this.createDir(path.dirname(filePath));
+
+            await fs.writeFile(filePath, data);
+            Log.push(`Successfully wrote file: ${filePath}`, Log.DEBUG);
+            return true;
+        } catch (error) {
+            Log.push(`Could not write file ${filePath}: ${String(error)}`);
+            return false;
+        }
+    }
+
+    async remove(path: string, recursive: boolean = true): Promise<boolean> {
+        try {
+            const stats = await fs.stat(path);
+            if (stats.isDirectory()) {
+                await fs.rm(path, { recursive });
+                Log.push(`Successfully removed directory: ${path}`, Log.DEBUG);
+            } else {
+                await fs.unlink(path);
+                Log.push(`Successfully removed file: ${path}`, Log.DEBUG);
+            }
+            return true;
+        } catch (error) {
+            Log.push(`Could not remove ${path}: ${String(error)}`);
+            return false;
+        }
+    }
+
+    async copy(src: string | string[], dest: string, options?: { newName?: string }): Promise<boolean> {
+        try {
+            // Ensure destination directory exists
+            await this.createDir(dest);
+
+            const sources = Array.isArray(src) ? src : [src];
+
+            for (const source of sources) {
+                const stats = await fs.stat(source);
+                const baseName = options?.newName || path.basename(source);
+                const destPath = path.join(dest, baseName);
+
+                if (stats.isFile()) {
+                    await fs.copyFile(source, destPath);
+                    Log.push(`Successfully copied file from ${source} to ${destPath}`, Log.DEBUG);
+                } else if (stats.isDirectory()) {
+                    await this.copyDirectoryRecursive(source, destPath);
+                    Log.push(`Successfully copied directory from ${source} to ${destPath}`, Log.DEBUG);
+                }
+            }
+
+            return true;
+        } catch (error) {
+            Log.push(`Could not copy from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${String(error)}`);
+            return false;
+        }
+    }
+
+    private async copyDirectoryRecursive(src: string, dest: string): Promise<void> {
+        await fs.mkdir(dest, { recursive: true });
+
+        const entries = await fs.readdir(src, { withFileTypes: true });
+
+        for (const entry of entries) {
+            const srcPath = path.join(src, entry.name);
+            const destPath = path.join(dest, entry.name);
+
+            if (entry.isDirectory()) {
+                await this.copyDirectoryRecursive(srcPath, destPath);
+            } else {
+                await fs.copyFile(srcPath, destPath);
+            }
+        }
+    }
+
+    async exist(path: string): Promise<boolean> {
+        try {
+            await fs.access(path);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async isFile(path: string): Promise<boolean> {
+        try {
+            const stats = await fs.stat(path);
+            return stats.isFile();
+        } catch {
+            return false;
+        }
+    }
+
+    async isDirectory(path: string): Promise<boolean> {
+        try {
+            const stats = await fs.stat(path);
+            return stats.isDirectory();
+        } catch {
+            return false;
+        }
+    }
+
+    async getSize(path: string): Promise<number> {
+        try {
+            const stats = await fs.stat(path);
+            if (stats.isFile()) {
+                return stats.size;
+            } else if (stats.isDirectory()) {
+                let totalSize = 0;
+
+                const calculateDirSize = async (dirPath: string): Promise<void> => {
+                    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+                    for (const entry of entries) {
+                        const fullPath = this.join(dirPath, entry.name);
+                        if (entry.isFile()) {
+                            const fileStats = await fs.stat(fullPath);
+                            totalSize += fileStats.size;
+                        } else if (entry.isDirectory()) {
+                            await calculateDirSize(fullPath);
+                        }
+                    }
+                };
+
+                await calculateDirSize(path);
+                return totalSize;
+            }
+
+            return 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    async fileExist(path: string | string[]): Promise<string | undefined> {
+        const paths = Array.isArray(path) ? path : [path];
+        for (const p of paths) {
+            if (await this.exist(p) && await this.isFile(p)) {
+                return p;
+            }
+        }
+        return undefined;
+    }
+
+    getCwd(): string {
+        return process.cwd();
+    }
+
+    setCwd(path: string): boolean {
+        try {
+            process.chdir(path);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    isAbsolute(pathStr: string): boolean {
+        return path.isAbsolute(pathStr);
+    }
+
+    join(...paths: string[]): string {
+        return path.join(...paths);
+    }
+
+    dirname(pathStr: string): string {
+        return path.dirname(pathStr);
+    }
+
+    relative(from: string, to: string): string {
+        return path.relative(from, to);
+    }
+}
+
+export const NodeFileSystem = new NodeFileSystemImpl();
