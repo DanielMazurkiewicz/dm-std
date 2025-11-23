@@ -1,4 +1,14 @@
 export namespace Obj {
+    export type Type = symbol
+    export namespace Type {
+        export const SYMBOL = Symbol('Type');
+        export function create(name: string) {
+            return Symbol(name)
+        }
+        export function is<T = any>(obj: any, type: symbol): obj is T {
+            return obj && typeof obj === 'object' && obj[SYMBOL] === type;
+        }
+    }
     export function clone<T>(obj: T): T {
         if (obj === null || typeof obj !== 'object') {
             return obj;

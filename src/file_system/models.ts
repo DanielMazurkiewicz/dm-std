@@ -16,7 +16,7 @@ export interface DirectoryNode {
 export type FileSystemNode = FileNode | DirectoryNode;
 
 // File system operation interfaces
-export interface FileSystemOperations {
+export interface FileSystem_Interface {
     // Directory operations
     createDir(dirPath: string): Promise<void>;
     readDir(dirPath: string): Promise<string[]>;
@@ -26,6 +26,13 @@ export interface FileSystemOperations {
     writeFile(filePath: string, data: Buffer): Promise<boolean>;
     remove(path: string, recursive?: boolean): Promise<boolean>;
     copy(src: string | string[], dest: string, options?: { newName?: string }): Promise<boolean>;
+    streamTo(src: string | string[], destFs: FileSystem_Interface, dest: string, options?: { newName?: string }): Promise<boolean>;
+
+    // Content operations
+    readFileAsJSON<T>(filePath: string): Promise<T>;
+    writeFileAsJSON(filePath: string, data: any, formatted?: boolean): Promise<boolean>;
+    readFileAsText(filePath: string): Promise<string>;
+    writeFileAsText(filePath: string, data: string): Promise<boolean>;
 
     // Path checking operations
     exist(path: string): Promise<boolean>;
@@ -44,4 +51,3 @@ export interface FileSystemOperations {
     dirname(path: string): string;
     relative(from: string, to: string): string;
 }
-

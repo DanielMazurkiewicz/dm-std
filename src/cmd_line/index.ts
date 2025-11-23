@@ -1,5 +1,5 @@
 import { Log } from '../log';
-import { Obj } from '../obj';
+import { Obj } from '../types/obj';
 
 
 
@@ -46,11 +46,11 @@ export namespace CmdLine {
         export function parse(options: Options): Parsed {
             const parsed: Parsed = {};
             for (let i = 0; i < options.length; i++) {
-                const option = Obj.clone(options[i]);
+                const option = Obj.clone(options[i]) as Option;
 
                 let typeArray = Array.isArray(option.type) ? option.type : [option.type];
                 
-                typeArray.sort((a, b) => VALUE_TYPE_ORDER.indexOf(a) - VALUE_TYPE_ORDER.indexOf(b));
+                typeArray.sort((a: Option.ValueType, b: Option.ValueType) => VALUE_TYPE_ORDER.indexOf(a) - VALUE_TYPE_ORDER.indexOf(b));
                 
                 option.type = typeArray;
 

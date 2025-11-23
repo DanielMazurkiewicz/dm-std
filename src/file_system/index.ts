@@ -5,7 +5,7 @@ export { MemoryFileSystem } from './disk_memory';
 
 // Export types and interfaces
 export type {
-    FileSystemOperations,
+    FileSystem_Interface,
 
     FileSystemNode,
     FileNode,

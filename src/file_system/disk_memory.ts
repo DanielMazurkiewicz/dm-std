@@ -1,7 +1,7 @@
 import { Log } from '../log';
-import type { FileSystemOperations, FileSystemNode, DirectoryNode, FileNode } from './models';
+import type { FileSystem_Interface, FileSystemNode, DirectoryNode, FileNode } from './models';
 
-class MemoryFileSystemImpl implements FileSystemOperations {
+export class FileSystem_Memory implements FileSystem_Interface {
     private root: DirectoryNode;
     private cwd: string;
 
@@ -93,7 +93,6 @@ class MemoryFileSystemImpl implements FileSystemOperations {
             const parts = filePath.split('/').filter(p => p);
             const dirPath = parts.length <= 1 ? '/' : '/' + parts.slice(0, -1).join('/');
             await this.createDir(dirPath);
-            await this.createDir(dirPath);
 
             const resolved = this.resolvePath(filePath);
             if (!resolved) {
@@ -115,6 +114,33 @@ class MemoryFileSystemImpl implements FileSystemOperations {
             Log.push(`Could not write file ${filePath}: ${(error as Error).message}`, Log.ERROR);
             return false;
         }
+    }
+
+    async readFileAsText(filePath: string): Promise<string> {
+        const node = this.getNode(filePath);
+        if (!node || node.type !== 'file') {
+            throw new Error(`File not found: ${filePath}`);
+        }
+        Log.push(`Successfully read file as text: ${filePath}`, Log.DEBUG);
+        return node.content.toString('utf-8');
+    }
+
+    async readFileAsJSON<T>(filePath: string): Promise<T> {
+        const text = await this.readFileAsText(filePath);
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(`Failed to parse JSON: ${e}`);
+        }
+    }
+
+    async writeFileAsText(filePath: string, data: string): Promise<boolean> {
+        return this.writeFile(filePath, Buffer.from(data, 'utf-8'));
+    }
+
+    async writeFileAsJSON(filePath: string, data: any, formatted: boolean = false): Promise<boolean> {
+        const content = formatted ? JSON.stringify(data, null, 4) : JSON.stringify(data);
+        return this.writeFileAsText(filePath, content);
     }
 
     async remove(path: string, recursive: boolean = true): Promise<boolean> {
@@ -210,6 +236,55 @@ class MemoryFileSystemImpl implements FileSystemOperations {
                 await this.copyFileNode(child, childDestPath);
             } else if (child.type === 'directory') {
                 await this.copyDirectoryRecursive(child, childDestPath);
+            }
+        }
+    }
+
+    async streamTo(src: string | string[], destFs: FileSystem_Interface, dest: string, options?: { newName?: string }): Promise<boolean> {
+        try {
+            // Ensure destination directory exists on destFs
+            await destFs.createDir(dest);
+
+            const sources = Array.isArray(src) ? src : [src];
+
+            for (const source of sources) {
+                const srcNode = this.getNode(source);
+                if (!srcNode) {
+                    throw new Error(`Source not found: ${source}`);
+                }
+
+                const baseName = options?.newName || srcNode.name;
+                const destPath = destFs.join(dest, baseName);
+
+                if (srcNode.type === 'directory') {
+                    await this.streamDirectoryRecursive(srcNode, destFs, destPath);
+                    Log.push(`Successfully streamed directory from ${source} to ${destPath}`, Log.DEBUG);
+                } else {
+                    const content = await this.readFile(source);
+                    await destFs.writeFile(destPath, content);
+                    Log.push(`Successfully streamed file from ${source} to ${destPath}`, Log.DEBUG);
+                }
+            }
+
+            return true;
+        } catch (error) {
+            Log.push(`Could not stream from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${(error as Error).message}`, Log.ERROR);
+            return false;
+        }
+    }
+
+    private async streamDirectoryRecursive(srcNode: DirectoryNode, destFs: FileSystem_Interface, destPath: string): Promise<void> {
+        await destFs.createDir(destPath);
+
+        for (const [name, child] of srcNode.children) {
+            const childDestPath = destFs.join(destPath, name);
+
+            if (child.type === 'directory') {
+                await this.streamDirectoryRecursive(child, destFs, childDestPath);
+            } else {
+                // child is FileNode
+                const content = child.content; 
+                await destFs.writeFile(childDestPath, content);
             }
         }
     }
@@ -315,4 +390,3 @@ class MemoryFileSystemImpl implements FileSystemOperations {
     }
 }
 
-export const MemoryFileSystem = new MemoryFileSystemImpl();

@@ -1,25 +1,24 @@
+
 # dm-std
 
-A collection of zero-dependency, type-safe numeric and utility functions for TypeScript, inspired by lower-level programming language types.
+**A collection of zero-dependency, type-safe numeric and utility functions for TypeScript.**
 
-`dm-std` provides predictable, fixed-size numeric types (`U8`, `U32`, `F64`), a powerful command-line argument parser, structured logging, file system abstractions, and a comprehensive set of string and object helpers to streamline your development process. It's designed for building tools, simulations, games, and any environment where explicit data types, performance, and robust utilities are beneficial.
+`dm-std` brings the predictability of lower-level languages to TypeScript. It provides fixed-size numeric types with clamped arithmetic (`U8`, `U32`), a powerful declarative command-line parser, unified file system abstractions (Node, Bun, Memory), and high-performance string/object utilities.
 
-Unlike many utility libraries, `dm-std` emphasizes type safety, predictable behavior (like clamped arithmetic), and zero runtime dependencies, making it ideal for constrained environments or when you need fine-grained control over numeric operations.
+It is designed for building tools, simulations, games, and CLIs where explicit data types, predictable math (no overflows/underflows), and cross-runtime compatibility are required.
 
-## Key Features
+## 🚀 Key Features
 
--   🔢 **Numeric Types**: Work with `U8`, `U32`, `F64` types that clamp results to their valid ranges, preventing unexpected overflows.
--   ⚙️ **Powerful CLI Parser**: A comprehensive command-line argument parser that supports typed values, arrays, aliases, default values, and more.
--   📝 **Structured Logging**: A flexible logging system with levels, groups, and streaming capabilities.
--   💾 **File System Abstractions**: Cross-platform file system operations with Bun, Node.js, and in-memory implementations.
--   ✍️ **Efficient String Utilities**: A set of high-performance functions (`findChar`, `skipChar`) for building your own simple and fast parsers.
--   🛠️ **Robust Object Helpers**: Safely get and set deeply nested properties in objects using dot-notation paths.
--   ✅ **Zero Dependencies**: A lightweight library that won't bloat your project.
--   🔒 **Strongly Typed**: Written entirely in TypeScript for maximum type safety.
+*   **🛡️ Clamped Numeric Types**: `U8`, `U32`, `F64` implementations that prevent overflow/underflow logic errors. Perfect for color math, health systems, or inventory management.
+*   **💻 Robust CLI Parser**: A declarative parser supporting typed values (`int`, `float`, `bool`, `json`), array inputs, aliases, validation maps, and object targeting.
+*   **💾 Universal File System**: Write code once and run it on **Bun**, **Node.js**, or in **Memory** (for testing). Includes helpers for JSON, text, recursive copying, and streaming.
+*   **⚡ Fast String Parsing**: Low-level `findChar` / `skipChar` utilities using lookup tables for building performant custom parsers.
+*   **📦 Object Helpers**: Safe deep `get`/`set` operations using dot-notation paths.
+*   **✅ Zero Dependencies**: Lightweight and completely self-contained.
 
-## Installation
+---
 
-You can install `dm-std` using your favorite package manager:
+## 📦 Installation
 
 ```bash
 # Bun
@@ -32,462 +31,220 @@ npm install dm-std
 yarn add dm-std
 ```
 
-## Project Structure
+---
 
-```
-src/
-├── types/           # Numeric type implementations
-│   ├── u8/         # 8-bit unsigned integers
-│   ├── u32/        # 32-bit unsigned integers
-│   ├── f64/        # 64-bit floating point numbers
-│   ├── arr/        # Array utilities (under development)
-│   ├── date_time/  # Date/time utilities
-│   └── obj/        # Object utilities (under development)
-├── log/            # Structured logging system
-├── cmd_line/       # Command-line argument parser
-├── str/            # String processing utilities
-├── char/           # Character utilities
-├── obj/            # Object manipulation helpers
-└── file_system/    # Cross-platform file system abstractions
-    ├── disk_bun.ts    # Bun runtime implementation
-    ├── disk_node.ts   # Node.js implementation
-    ├── disk_memory.ts # In-memory implementation
-    ├── models.ts      # Type definitions
-    └── index.ts       # Exports
-```
-
-## Quick Cheat Sheet
-
-Here are the core concepts at a glance:
+## ⚡ Quick Cheat Sheet
 
 ```typescript
-import { U8, U32, F64, CmdLine, Str, Char, Obj, Log, DateTime, BunFileSystem, NodeFileSystem, MemoryFileSystem } from 'dm-std';
+import { U8, CmdLine, Str, Char, BunFileSystem, NodeFileSystem } from 'dm-std';
 
-// --- Numeric Types ---
-// Operations are clamped to the type's range.
-U8.add(250, 10); // => 255 (not 260)
-U32.sub(5, 10);  // => 0 (not -5)
+// --- 1. Clamped Arithmetic (U8: 0-255) ---
+U8.add(250, 20); // => 255 (Clamped at MAX, no rollover)
+U8.sub(5, 10);   // => 0   (Clamped at MIN)
+U8.div(100, 0);  // => 255 (Safe division)
 
-// Get a random number within the type's range.
-const randomByte = U8.getRandom(); // 0-255
+// --- 2. Universal File System ---
+// Switch implementation based on runtime, API stays the same
+const fs = (process.isBun) ? BunFileSystem : NodeFileSystem;
 
-// --- Command-Line Parser ---
-const options: CmdLine.Option[] = [{
-  triggers: ['-i', '--input'],
-  type: 'string',
-  description: 'Input file path.'
-}];
-const parsedOptions = CmdLine.Options.parse(options);
-const args = CmdLine.parse(parsedOptions, process.argv.slice(2));
-// `args` will be an object like { input: 'path/to/file.txt' }
+await fs.writeFileAsJSON('config.json', { volume: 100 }, true); // Pretty print
+const exists = await fs.exist('config.json');
+await fs.copy('src_dir', 'backup_dir'); // Recursive copy
 
-// --- String & Char Utilities ---
-const text = "key=value;user=admin";
-const separators = Char.createList(';=');
-const position = Str.findChar(text, separators); // => 3 (position of '=')
-const nextStart = Str.skipChar(text, separators, position); // => 4 (position of 'v')
+// --- 3. Fast String Scanning ---
+const input = "key=value; type=u8";
+const DELIMITERS = Char.createList('=; '); // O(1) lookup table
 
-// --- Object Utilities ---
-const myObj = { config: { users: ['root'] } };
-Obj.set(myObj, 'config.users[1]', 'admin');
-// myObj is now { config: { users: ['root', 'admin'] } }
-const user = Obj.get(myObj, 'config.users[0]'); // => 'root'
+// Skip spaces to find start
+const start = Str.skipChar(input, Char.createList(' '), 0);
+// Find next delimiter
+const end = Str.findChar(input, DELIMITERS, start); 
 
-// --- Logging ---
-Log.push('Application started', Log.INFO);
-const entry = Log.streamStart(Log.DEBUG);
-// ... do some work ...
-Log.stream(entry, 'Processing item 1');
-Log.streamEnd(entry);
-
-// --- Date/Time ---
-const now = DateTime.now(); // Current timestamp
-
-// --- File System ---
-const fs = BunFileSystem; // or NodeFileSystem or MemoryFileSystem
-await fs.writeFile('example.txt', Buffer.from('Hello World'));
-const content = await fs.readFile('example.txt');
-
-// Copy operations
-await fs.copy('example.txt', '/backup'); // Copy file to directory
-await fs.copy('/source/dir', '/dest'); // Copy directory recursively
-await fs.copy('example.txt', '/backup', { newName: 'backup.txt' }); // Copy with new name
+// --- 4. CLI Parsing ---
+const args = CmdLine.parse(
+    CmdLine.Options.parse([
+        { triggers: ['-p', '--port'], type: 'integer', default: 8080 },
+        { triggers: ['--dry-run'], type: 'none' } // Flag (boolean true if present)
+    ]), 
+    process.argv.slice(2)
+);
 ```
 
-## Usage Examples
+---
 
-### 1. Building a Command-Line Tool
+## 📚 Usage Examples
 
-`CmdLine` makes it easy to create robust command-line interfaces. Let's define options for a file processing script.
+### 1. The Universal File System
+The `FileSystem` abstraction allows you to write file logic that works anywhere. This is particularly powerful for testing—you can run your logic against `MemoryFileSystem` in unit tests and `BunFileSystem` in production.
+
+```typescript
+import { BunFileSystem, MemoryFileSystem, type FileSystem_Interface } from 'dm-std';
+
+async function createBackup(fs: FileSystem_Interface, source: string) {
+    if (!await fs.exist(source)) {
+        console.error("Source missing");
+        return;
+    }
+    
+    // Recursive copy, works for files or directories
+    await fs.copy(source, './backup');
+    
+    // You can even stream between different file systems!
+    // e.g. Stream from Disk to Memory for processing
+    await fs.streamTo(source, MemoryFileSystem, '/virtual-backup');
+}
+
+// Run with Bun
+await createBackup(BunFileSystem, './data');
+```
+
+### 2. Building a Robust CLI Tool
+`CmdLine` handles complex argument parsing with a declarative configuration. It supports enforcing specific values via maps, parsing JSON arguments directly, and handling arrays.
 
 ```typescript
 import { CmdLine } from 'dm-std';
 
-// 1. Define your command-line options
-const options: CmdLine.Option[] = [
-  {
-    triggers: ['-i', '--input'],
-    type: 'string',
-    description: 'The path to the input file.',
-  },
-  {
-    triggers: ['-o', '--output'],
-    type: 'string',
-    target: 'outputPath', // Use a different property name in the result
-    default: './output.txt',
-    description: 'The path for the output file.',
-  },
-  {
-    triggers: ['--level'],
-    type: 'integer',
-    default: 3,
-    description: 'Compression level (1-5).',
-  },
-  {
-    triggers: ['-v', '--verbose'],
-    type: 'none', // This is a flag; its presence means `true`
-    description: 'Enable verbose logging.',
-  },
-  {
-    triggers: ['--ignore'],
-    type: 'string',
-    isArray: true, // This option can be repeated
-    description: 'File patterns to ignore.'
-  }
+const optionsRaw: CmdLine.Option[] = [
+    {
+        triggers: ['-m', '--mode'],
+        type: 'string',
+        // Only allow these specific values, mapping them to internal constants if needed
+        map: {
+            'fast': 'MODE_FAST',
+            'safe': 'MODE_SAFE'
+        },
+        default: 'MODE_SAFE'
+    },
+    {
+        triggers: ['-c', '--config'],
+        type: 'json', // Parses input string as JSON
+        description: 'Pass config object directly'
+    },
+    {
+        triggers: ['--exclude'],
+        type: 'string',
+        isArray: true, // Allows: --exclude node_modules --exclude .git
+        target: 'exclusions' // Renames property in result object
+    }
 ];
 
-// 2. Pre-parse the option definitions for efficiency
-const parsedOptions = CmdLine.Options.parse(options);
+// Pre-optimize options for faster parsing
+const options = CmdLine.Options.parse(optionsRaw);
 
-// 3. Get arguments from the command line (or a string for testing)
-// Example command: `node my-script.js -i data.csv --level 5 --verbose --ignore "*.tmp" --ignore "cache/*"`
-const argv = ['-i', 'data.csv', '--level', '5', '--verbose', '--ignore', '*.tmp', '--ignore', 'cache/*'];
+// Input: node tool.js --mode fast --exclude dist --exclude coverage -c '{"timeout": 500}'
+const result = CmdLine.parse(options, process.argv.slice(2));
 
-// 4. Parse the arguments
-const result = CmdLine.parse<{
-    input: string;
-    outputPath: string;
-    level: number;
-    verbose: boolean;
-    ignore: string[];
-}>(parsedOptions, argv);
-
-
-if (typeof result === 'string') {
-  console.error(`Error: ${result}`);
-} else {
-  console.log('Arguments parsed successfully:');
-  console.log(result);
-  // Expected output:
-  // {
-  //   input: 'data.csv',
-  //   level: 5,
-  //   verbose: true,
-  //   ignore: [ '*.tmp', 'cache/*' ],
-  //   outputPath: './output.txt' // from default
-  // }
+/* Result:
+{
+    mode: 'MODE_FAST',
+    exclusions: ['dist', 'coverage'],
+    config: { timeout: 500 }
 }
+*/
 ```
 
-### 2. Working with Numeric Types
-
-Use `U8` to safely manipulate values that represent bytes, like RGB color components.
+### 3. Numeric types with `U8` / `U32`
+Standard JavaScript numbers are floats. `dm-std` types provide integer logic useful for game states, colors, or protocol buffers.
 
 ```typescript
-import { U8 } from 'dm-std';
+import { U8, U32 } from 'dm-std';
 
-// An RGB color
-let color = {
-    r: U8.getRandomFromRange(0, 256), // 256 is exclusive
-    g: 100,
-    b: 240,
-};
+// Color mixing (Safe from 0-255 overflow)
+const r = 200;
+const r_boost = 100;
+const r_final = U8.add(r, r_boost); // 255 (not 300)
 
-console.log('Initial color:', color);
+// Rotation Logic
+// U32 maps the full 32-bit range to 0..2PI for trig functions
+// This allows highly efficient integer-based rotation math.
+const angle = U32.MAX / 2; // Equivalent to PI (180 degrees)
+const val = U32.sin(angle); // ~0 (Center of sine wave mapped to U32)
 
-// Brighten the blue component.
-// U8.add clamps the result to 255 if it overflows.
-color.b = U8.add(color.b, 50);
-
-console.log('Brightened color:', color); // { r: ..., g: 100, b: 255 }
-
-// Darken the green component.
-// U8.sub clamps the result to 0 if it underflows.
-color.g = U8.sub(color.g, 150);
-
-console.log('Darkened color:', color); // { r: ..., g: 0, b: 255 }
+// Random ranges
+const damage = U8.getRandomFromRange(10, 20); // 10 to 19
 ```
 
-### 3. Simple String Parsing
+---
 
-Use `Str` and `Char` to quickly find tokens or split strings without the overhead of regular expressions.
-
-```typescript
-import { Str, Char } from 'dm-std';
-
-const configLine = " port = 8080 ; timeout=30000 ";
-const WHITESPACE = Char.createList(' \t\r\n');
-const SEPARATORS = Char.createList(';=');
-
-// Trim leading whitespace
-let position = Str.skipChar(configLine, WHITESPACE, 0); // position is now at 'p'
-
-// Find the end of the key
-const keyEnd = Str.findChar(configLine, WHITESPACE, position);
-const key = configLine.substring(position, keyEnd); // "port"
-
-// Find the value
-position = Str.findChar(configLine, SEPARATORS, keyEnd); // position is now at '='
-position = Str.skipChar(configLine, WHITESPACE, position + 1); // skip whitespace after '='
-const valueEnd = Str.findChar(configLine, WHITESPACE, position);
-const value = configLine.substring(position, valueEnd); // "8080"
-
-console.log({ [key]: Number(value) }); // { port: 8080 }
-```
-
-### 4. Structured Logging
-
-Use the `Log` namespace for flexible, structured logging with levels and groups.
-
-```typescript
-import { Log } from 'dm-std';
-
-// Create a log group for your application
-const appLogGroup = Log.Group.create('my-app', 'Application logs');
-
-// Log messages with different levels
-Log.push('Application started', Log.INFO, undefined, appLogGroup);
-Log.push('Warning: Low memory', Log.WARN, { memoryUsage: 85 }, appLogGroup);
-
-// Stream logging for ongoing operations
-const processEntry = Log.streamStart(Log.DEBUG, appLogGroup);
-Log.stream(processEntry, 'Processing file 1...');
-Log.stream(processEntry, 'Processing file 2...');
-Log.streamEnd(processEntry);
-
-// Output logs to console
-Log.Group.toConsole(appLogGroup);
-```
-
-### 5. File System Operations
-
-Use file system abstractions for cross-platform file operations.
-
-```typescript
-import { BunFileSystem, NodeFileSystem, MemoryFileSystem } from 'dm-std';
-
-// Choose your file system implementation
-const fs = BunFileSystem; // or NodeFileSystem or MemoryFileSystem
-
-// Basic file operations
-await fs.writeFile('data.txt', Buffer.from('Hello World'));
-const content = await fs.readFile('data.txt');
-console.log(content.toString()); // "Hello World"
-
-// Directory operations
-await fs.createDir('output');
-const files = await fs.readDir('output');
-
-// Path utilities
-const fullPath = fs.join('path', 'to', 'file.txt');
-const isAbs = fs.isAbsolute('/absolute/path');
-```
-
-## Full API Reference
+## 📖 API Reference
 
 ### `CmdLine`
-
-A powerful command-line argument parser.
+Namespace for command-line argument parsing.
 
 #### `CmdLine.Option` Interface
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `triggers` | `string[]` | Flags that trigger this option (e.g., `['-f', '--file']`). |
+| `type` | `ValueType` \| `ValueType[]` | `"none"`, `"boolean"`, `"integer"`, `"float"`, `"json"`, `"string"`. |
+| `target` | `string` | Property name in the result. Supports dot notation (e.g., `server.port`). |
+| `isArray` | `boolean` | If true, values collect into an array. |
+| `map` | `Record<string, any>` | Whitelist of allowed string inputs mapped to result values. |
+| `default` | `any` | Value used if trigger is missing. |
 
-This interface defines a single command-line option.
+#### `CmdLine.parse<T>(options, argv): T | string`
+Parses arguments. Returns the result object `T` on success, or an error **string** on failure.
 
-| Property      | Type                                       | Description                                                                                             |
-| :------------ | :----------------------------------------- | :------------------------------------------------------------------------------------------------------ |
-| `triggers`    | `string[]`                                 | An array of triggers, e.g., `['-f', '--force']`.                                                         |
-| `type`        | `ValueType` or `ValueType[]`               | The expected type(s) of the value: `"none"`, `"boolean"`, `"integer"`, `"float"`, `"json"`, `"string"`. |
-| `isArray`     | `boolean` (optional)                       | If `true`, the option can be specified multiple times and values will be collected into an array.       |
-| `target`      | `string` (optional)                        | The property name in the final parsed object. Defaults to the longest trigger (e.g., `--force` -> `force`). |
-| `map`         | `Record<string, any>` (optional)           | A map of allowed string values to their corresponding parsed values.                                    |
-| `default`     | `any` (optional)                           | A default value to use if the option is not provided.                                                   |
-| `description` | `string` (optional)                        | A description of the option, for help text generation.                                                  |
+---
 
-#### Main Functions
+### `FileSystem` (`BunFileSystem`, `NodeFileSystem`, `MemoryFileSystem`)
+All implementations adhere to the `FileSystem_Interface` interface.
 
--   `CmdLine.Options.parse(options: CmdLine.Option[]): Options.Parsed`
-    Pre-processes an array of option definitions into an optimized map for faster parsing.
+**Core Methods:**
+*   `readFile(path): Promise<Buffer>`
+*   `writeFile(path, data): Promise<boolean>`
+*   `createDir(path): Promise<void>`
+*   `readDir(path): Promise<string[]>`
+*   `remove(path, recursive?): Promise<boolean>`
+*   `copy(src, dest, options?): Promise<boolean>` - Recursive copy.
+*   `streamTo(src, destFs, destPath): Promise<boolean>` - Pipes data from one FS implementation to another.
 
--   `CmdLine.parse<T>(options: Options.Parsed, line: string | string[]): T | string`
-    Parses an argument string or array (`process.argv`) against the parsed options. Returns the populated object `T` on success or an error `string` on failure.
+**Helpers:**
+*   `readFileAsText(path)` / `writeFileAsText(path, data)`
+*   `readFileAsJSON<T>(path)` / `writeFileAsJSON(path, data, formatted?)`
+*   `exist(path)` / `isFile(path)` / `isDirectory(path)`
+*   `getSize(path)`
+*   `join(...)`, `dirname(...)`, `relative(...)`
 
 ---
 
 ### Numeric Types (`U8`, `U32`, `F64`)
 
-These namespaces provide functions for working with fixed-size numbers. All arithmetic operations are clamped to the valid range of the type to prevent overflow/underflow.
+#### Common Features
+*   **Clamped Arithmetic**: `add`, `sub`, `mul`, `div` (safe div by 0), `pow`. Results stay within type bounds.
+*   **Bitwise**: `shl`, `shr`.
+*   **Logic**: `ter(a, b, c, d)` (Ternary: if `a <= b` then `c` else `d`).
+*   **Random**: `getRandom()` (full range), `getRandomFromRange(min, max)`.
 
-#### `U8` (8-bit unsigned integer, range: 0-255)
+#### `U8` (0 to 255)
+*   `sin(val)`, `cos(val)`: Input is 0-255 mapped to 0-2π. Output is 0-255 mapped from -1..1.
+*   `tan(val)`: Mapped similarly with safe bounds.
+*   `log(val)`, `exp(val)`: Scaled to fit U8 range.
 
--   `U8.MIN = 0`, `U8.MAX = 255`
--   `U8.getRandom(): U8`
-    Returns a pseudo-random number within the type's range.
--   `U8.getRandomFromRange(min: number, max: number): U8`
-    Returns a pseudo-random number in the range `[min, max)`.
--   Arithmetic: `add(a, b)`, `sub(a, b)`, `mul(a, b)`, `div(a, b)`, `mod(a, b)`, `pow(a, b)`
--   Bitwise: `shl(a, b)`, `shr(a, b)`
--   Math: `cos(val)`, `sin(val)`, `tan(val)`, `log(val)`, `exp(val)`
--   `U8.ter(a, b, c, d): U8`
-    Ternary operator: returns `c` if `a <= b`, otherwise `d`.
-
-#### `U32` (32-bit unsigned integer, range: 0-4294967295)
-
--   `U32.MIN = 0`, `U32.MAX = 4294967295`
--   `U32.setSeed(newSeed: U32): void`
-    Sets the seed for the random number generator.
--   `U32.getRandom(): U32`
-    Returns a pseudo-random number within the type's range.
--   `U32.getRandomFromRange(min: number, max: number): number`
-    Returns a pseudo-random number in the range `[min, max)`.
--   Arithmetic: `add(a, b)`, `sub(a, b)`, `mul(a, b)`, `div(a, b)`, `mod(a, b)`, `pow(a, b)`
--   Bitwise: `shl(a, b)`, `shr(a, b)`
--   Math: `cos(val)`, `sin(val)`, `tan(val)`, `log(val)`, `exp(val)`
--   `U32.ter(a, b, c, d): U32`
-    Ternary operator: returns `c` if `a <= b`, otherwise `d`.
-
-#### `F64` (64-bit floating point)
-
--   `F64.getRandom(): F64`
-    Returns a pseudo-random number in the range `[0, 1)`.
--   `F64.getRandomFromRange(min: F64, max: F64): F64`
-    Returns a pseudo-random number in the range `[min, max)`.
--   Arithmetic: `add(a, b)`, `sub(a, b)`, `mul(a, b)`, `div(a, b)`, `mod(a, b)`, `pow(a, b)`
--   Bitwise: `shl(a, b)`, `shr(a, b)` (interpreted as power-of-2 multiplication/division)
--   Math: `cos(val)`, `sin(val)`, `tan(val)`, `log(val)`, `exp(val)`
--   `F64.ter(a, b, c, d): F64`
-    Ternary operator: returns `c` if `a <= b`, otherwise `d`.
+#### `U32` (0 to 4,294,967,295)
+*   `setSeed(seed)`: Set seed for the internal PRNG (Xorshift).
+*   Trigonometry inputs map `0..MAX` to `0..2π`.
 
 ---
 
-### `Str` & `Char`
-
-Utilities for efficient, low-level string parsing.
+### String Utilities (`Str`, `Char`)
 
 #### `Char`
-
--   `type Char = string`
--   `Char.createList(list: string | string[]): Char.List`
-    Creates a `Record<string, boolean>` lookup table from a string or array of strings for fast character checking.
+*   `createList(chars: string): Record<string, boolean>` - Creates a fast lookup map for characters.
 
 #### `Str`
-
--   `type Str = string`
--   `Str.findChar(text: string, chars: Char.List, startPosition?: number): number`
-    Finds the first occurrence of any character from `chars` in `text`. Returns the position or `Str.NOT_FOUND` (-1).
--   `Str.findCharRev(text: string, chars: Char.List, startPosition?: number): number`
-    Same as `findChar`, but searches backwards from `startPosition`.
--   `Str.skipChar(text: string, chars: Char.List, startPosition?: number): number`
-    Finds the first character in `text` that is **not** in `chars`. Returns the position. Useful for skipping whitespace or delimiters.
--   `Str.skipCharRev(text: string, chars: Char.List, startPosition?: number): number`
-    Same as `skipChar`, but searches backwards.
--   `Str.isNotFound(position: Position): boolean`
-    Checks if a position indicates "not found".
--   `Str.isEndOfString(text: string, position: Position): boolean`
-    Checks if a position is at or beyond the end of the string.
+*   `findChar(text, charList, start?)`: Finds index of first matching char.
+*   `skipChar(text, charList, start?)`: Finds index of first char **not** in the list.
+*   `findCharRev` / `skipCharRev`: Reverse search.
+*   `isNotFound(pos)`: Checks against `Str.NOT_FOUND`.
 
 ---
 
 ### `Obj`
-
-A collection of helpers for object manipulation.
-
--   `Obj.get(obj: any, path: string | (string | number)[], defaultValue?: any): any`
-    Retrieves a value from a nested object using a dot-notation path (e.g., `'a.b[0].c'`) or an array of path segments. Returns the default value if the path doesn't exist.
--   `Obj.set(obj: any, path: string | (string | number)[], value: any): any`
-    Sets a value in a nested object using a dot-notation path or array of path segments. It creates nested objects and arrays as needed.
--   `Obj.clone<T>(obj: T): T`
-    Creates a deep copy of the given object.
+*   `get(obj, path, default?)`: Safe access (e.g., `Obj.get(data, 'users[0].name')`).
+*   `set(obj, path, value)`: Safe assignment, creating intermediate objects/arrays.
+*   `clone<T>(obj)`: Deep copy.
 
 ---
 
-### `Arr`
-
-Array utilities namespace (currently under development).
-
----
-
-### File System Abstractions
-
-Cross-platform file system operations with multiple implementations.
-
-#### Available Implementations
-
--   `BunFileSystem`: Optimized for Bun runtime
--   `NodeFileSystem`: Standard Node.js file system operations
--   `MemoryFileSystem`: In-memory file system for testing
-
-#### Common Operations
-
-All implementations provide the same `FileSystemOperations` interface:
-
--   **Directory Operations**:
-    -   `createDir(dirPath: string): Promise<void>`
-    -   `readDir(dirPath: string): Promise<string[]>`
-
--   **File Operations**:
-    -   `readFile(filePath: string): Promise<Buffer>`
-    -   `writeFile(filePath: string, data: Buffer): Promise<boolean>`
-    -   `remove(path: string, recursive?: boolean): Promise<boolean>`
-    -   `copy(src: string | string[], dest: string, options?: { newName?: string }): Promise<boolean>`
-        Copies files or directories. If `src` is a file, copies the file to the `dest` directory. If `src` is a directory, recursively copies the entire directory to the `dest` directory. `dest` is always treated as a directory to copy into. The optional `newName` parameter allows renaming the copied item.
-
--   **Path Checking Operations**:
-    -   `exist(path: string): Promise<boolean>`
-    -   `isFile(path: string): Promise<boolean>`
-    -   `isDirectory(path: string): Promise<boolean>`
-    -   `getSize(path: string): Promise<number>`
-    -   `fileExist(path: string | string[]): Promise<string | undefined>`
-
--   **Working Directory Operations**:
-    -   `getCwd(): string`
-    -   `setCwd(path: string): boolean`
-
--   **Path Utilities**:
-    -   `isAbsolute(path: string): boolean`
-    -   `join(...paths: string[]): string`
-    -   `dirname(path: string): string`
-    -   `relative(from: string, to: string): string`
-
----
-
-## Design Philosophy
-
-`dm-std` is built with several key principles in mind:
-
-- **Type Safety First**: Everything is strongly typed with TypeScript
-- **Predictable Behavior**: Numeric operations are clamped to prevent overflow/underflow surprises
-- **Zero Dependencies**: No external runtime dependencies for maximum compatibility
-- **Performance Conscious**: Efficient algorithms and data structures
-- **Cross-Platform**: Works across different JavaScript runtimes (Node.js, Bun, etc.)
-- **Composable**: Small, focused utilities that work well together
-
-## Development
-
-This project uses TypeScript and is designed to work with modern JavaScript runtimes including Node.js and Bun.
-
-### Building
-
-The project is distributed as TypeScript source code that can be imported directly. No build step is required for end users.
-
-### Contributing
-
-Contributions are welcome! Please ensure that:
-
-- All code follows the existing TypeScript patterns
-- Functions are properly typed
-- New features include appropriate documentation
-- Tests are added for new functionality
-
-## License
-
-This project is licensed under the MIT License.
+## 📄 License
+MIT License.

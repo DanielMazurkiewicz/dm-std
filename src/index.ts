@@ -6,6 +6,7 @@ export * from './types/u8';
 export * from './types/str';
 export * from './types/char';
 export * from './types/obj';
+export * from './types/err';
 
 export * from './log';
 export * from './cmd_line';

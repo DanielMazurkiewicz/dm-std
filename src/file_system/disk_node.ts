@@ -1,9 +1,9 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { Log } from '../log';
-import type { FileSystemOperations } from './models';
+import type { FileSystem_Interface } from './models';
 
-class NodeFileSystemImpl implements FileSystemOperations {
+export class FileSystem_Node implements FileSystem_Interface {
 
     constructor() {
     }
@@ -48,6 +48,49 @@ class NodeFileSystemImpl implements FileSystemOperations {
             return true;
         } catch (error) {
             Log.push(`Could not write file ${filePath}: ${String(error)}`);
+            return false;
+        }
+    }
+
+    async readFileAsText(filePath: string): Promise<string> {
+        try {
+            const data = await fs.readFile(filePath, 'utf-8');
+            Log.push(`Successfully read file as text: ${filePath}`, Log.DEBUG);
+            return data;
+        } catch (error) {
+            Log.push(`Could not read file as text ${filePath}: ${String(error)}`);
+            throw error;
+        }
+    }
+
+    async readFileAsJSON<T>(filePath: string): Promise<T> {
+        try {
+            const text = await this.readFileAsText(filePath);
+            return JSON.parse(text);
+        } catch (error) {
+            Log.push(`Could not read file as JSON ${filePath}: ${String(error)}`);
+            throw error;
+        }
+    }
+
+    async writeFileAsText(filePath: string, data: string): Promise<boolean> {
+        try {
+            await this.createDir(path.dirname(filePath));
+            await fs.writeFile(filePath, data, 'utf-8');
+            Log.push(`Successfully wrote file: ${filePath}`, Log.DEBUG);
+            return true;
+        } catch (error) {
+            Log.push(`Could not write file ${filePath}: ${String(error)}`);
+            return false;
+        }
+    }
+
+    async writeFileAsJSON(filePath: string, data: any, formatted: boolean = false): Promise<boolean> {
+        try {
+            const content = formatted ? JSON.stringify(data, null, 4) : JSON.stringify(data);
+            return await this.writeFileAsText(filePath, content);
+        } catch (error) {
+            Log.push(`Could not write file as JSON ${filePath}: ${String(error)}`);
             return false;
         }
     }
@@ -110,6 +153,51 @@ class NodeFileSystemImpl implements FileSystemOperations {
                 await this.copyDirectoryRecursive(srcPath, destPath);
             } else {
                 await fs.copyFile(srcPath, destPath);
+            }
+        }
+    }
+
+    async streamTo(src: string | string[], destFs: FileSystem_Interface, dest: string, options?: { newName?: string }): Promise<boolean> {
+        try {
+            // Ensure destination directory exists on destFs
+            await destFs.createDir(dest);
+
+            const sources = Array.isArray(src) ? src : [src];
+
+            for (const source of sources) {
+                const stats = await fs.stat(source);
+                const baseName = options?.newName || path.basename(source);
+                const destPath = destFs.join(dest, baseName);
+
+                if (stats.isDirectory()) {
+                    await this.streamDirectoryRecursive(source, destFs, destPath);
+                    Log.push(`Successfully streamed directory from ${source} to ${destPath}`, Log.DEBUG);
+                } else if (stats.isFile()) {
+                    const content = await this.readFile(source);
+                    await destFs.writeFile(destPath, content);
+                    Log.push(`Successfully streamed file from ${source} to ${destPath}`, Log.DEBUG);
+                }
+            }
+            return true;
+        } catch (error) {
+            Log.push(`Could not stream from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${String(error)}`);
+            return false;
+        }
+    }
+
+    private async streamDirectoryRecursive(src: string, destFs: FileSystem_Interface, dest: string): Promise<void> {
+        await destFs.createDir(dest);
+        const entries = await fs.readdir(src, { withFileTypes: true });
+
+        for (const entry of entries) {
+            const srcPath = path.join(src, entry.name);
+            const destPath = destFs.join(dest, entry.name);
+
+            if (entry.isDirectory()) {
+                await this.streamDirectoryRecursive(srcPath, destFs, destPath);
+            } else {
+                const content = await this.readFile(srcPath);
+                await destFs.writeFile(destPath, content);
             }
         }
     }
@@ -212,4 +300,3 @@ class NodeFileSystemImpl implements FileSystemOperations {
     }
 }
 
-export const NodeFileSystem = new NodeFileSystemImpl();
