@@ -4,15 +4,16 @@ import { Log } from '../log';
 import type { FileSystem_Interface } from './models';
 
 export class FileSystem_Node implements FileSystem_Interface {
+    private logGroup: Log.Group.ID;
 
-    constructor() {
+    constructor(logGroup?: Log.Group.ID) {
+        this.logGroup = logGroup ?? Log.Group.preferred;
     }
     async createDir(dirPath: string): Promise<void> {
         try {
             await fs.mkdir(dirPath, { recursive: true });
-            Log.push(`Successfully created directory: ${dirPath}`, Log.DEBUG);
         } catch (error) {
-            Log.push(`Could not create directory ${dirPath}: ${String(error)}`, Log.ERROR);
+            Log.push(`Could not create directory ${dirPath}: ${String(error)}`, Log.ERROR, null, this.logGroup);
             throw error;
         }
     }
@@ -22,7 +23,7 @@ export class FileSystem_Node implements FileSystem_Interface {
             const entries = await fs.readdir(dirPath);
             return entries;
         } catch (error) {
-            Log.push(`Could not read directory ${dirPath}: ${String(error)}`);
+            Log.push(`Could not read directory ${dirPath}: ${String(error)}`, Log.INFO, null, this.logGroup);
             throw error;
         }
     }
@@ -30,10 +31,9 @@ export class FileSystem_Node implements FileSystem_Interface {
     async readFile(filePath: string): Promise<Buffer> {
         try {
             const data = await fs.readFile(filePath);
-            Log.push(`Successfully read file: ${filePath}`, Log.DEBUG);
             return data;
         } catch (error) {
-            Log.push(`Could not read file ${filePath}: ${String(error)}`);
+            Log.push(`Could not read file ${filePath}: ${String(error)}`, Log.INFO, null, this.logGroup);
             throw error;
         }
     }
@@ -44,7 +44,6 @@ export class FileSystem_Node implements FileSystem_Interface {
             await this.createDir(path.dirname(filePath));
 
             await fs.writeFile(filePath, data);
-            Log.push(`Successfully wrote file: ${filePath}`, Log.DEBUG);
             return true;
         } catch (error) {
             Log.push(`Could not write file ${filePath}: ${String(error)}`);
@@ -55,10 +54,9 @@ export class FileSystem_Node implements FileSystem_Interface {
     async readFileAsText(filePath: string): Promise<string> {
         try {
             const data = await fs.readFile(filePath, 'utf-8');
-            Log.push(`Successfully read file as text: ${filePath}`, Log.DEBUG);
             return data;
         } catch (error) {
-            Log.push(`Could not read file as text ${filePath}: ${String(error)}`);
+            Log.push(`Could not read file as text ${filePath}: ${String(error)}`, Log.INFO, null, this.logGroup);
             throw error;
         }
     }
@@ -68,7 +66,7 @@ export class FileSystem_Node implements FileSystem_Interface {
             const text = await this.readFileAsText(filePath);
             return JSON.parse(text);
         } catch (error) {
-            Log.push(`Could not read file as JSON ${filePath}: ${String(error)}`);
+            Log.push(`Could not read file as JSON ${filePath}: ${String(error)}`, Log.INFO, null, this.logGroup);
             throw error;
         }
     }
@@ -77,7 +75,6 @@ export class FileSystem_Node implements FileSystem_Interface {
         try {
             await this.createDir(path.dirname(filePath));
             await fs.writeFile(filePath, data, 'utf-8');
-            Log.push(`Successfully wrote file: ${filePath}`, Log.DEBUG);
             return true;
         } catch (error) {
             Log.push(`Could not write file ${filePath}: ${String(error)}`);
@@ -90,7 +87,7 @@ export class FileSystem_Node implements FileSystem_Interface {
             const content = formatted ? JSON.stringify(data, null, 4) : JSON.stringify(data);
             return await this.writeFileAsText(filePath, content);
         } catch (error) {
-            Log.push(`Could not write file as JSON ${filePath}: ${String(error)}`);
+            Log.push(`Could not write file as JSON ${filePath}: ${String(error)}`, Log.INFO, null, this.logGroup);
             return false;
         }
     }
@@ -100,14 +97,12 @@ export class FileSystem_Node implements FileSystem_Interface {
             const stats = await fs.stat(path);
             if (stats.isDirectory()) {
                 await fs.rm(path, { recursive });
-                Log.push(`Successfully removed directory: ${path}`, Log.DEBUG);
             } else {
                 await fs.unlink(path);
-                Log.push(`Successfully removed file: ${path}`, Log.DEBUG);
             }
             return true;
         } catch (error) {
-            Log.push(`Could not remove ${path}: ${String(error)}`);
+            Log.push(`Could not remove ${path}: ${String(error)}`, Log.INFO, null, this.logGroup);
             return false;
         }
     }
@@ -126,16 +121,14 @@ export class FileSystem_Node implements FileSystem_Interface {
 
                 if (stats.isFile()) {
                     await fs.copyFile(source, destPath);
-                    Log.push(`Successfully copied file from ${source} to ${destPath}`, Log.DEBUG);
                 } else if (stats.isDirectory()) {
                     await this.copyDirectoryRecursive(source, destPath);
-                    Log.push(`Successfully copied directory from ${source} to ${destPath}`, Log.DEBUG);
                 }
             }
 
             return true;
         } catch (error) {
-            Log.push(`Could not copy from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${String(error)}`);
+            Log.push(`Could not copy from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${String(error)}`, Log.INFO, null, this.logGroup);
             return false;
         }
     }
@@ -171,16 +164,14 @@ export class FileSystem_Node implements FileSystem_Interface {
 
                 if (stats.isDirectory()) {
                     await this.streamDirectoryRecursive(source, destFs, destPath);
-                    Log.push(`Successfully streamed directory from ${source} to ${destPath}`, Log.DEBUG);
                 } else if (stats.isFile()) {
                     const content = await this.readFile(source);
                     await destFs.writeFile(destPath, content);
-                    Log.push(`Successfully streamed file from ${source} to ${destPath}`, Log.DEBUG);
                 }
             }
             return true;
         } catch (error) {
-            Log.push(`Could not stream from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${String(error)}`);
+            Log.push(`Could not stream from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${String(error)}`, Log.INFO, null, this.logGroup);
             return false;
         }
     }

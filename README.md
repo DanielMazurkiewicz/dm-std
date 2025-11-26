@@ -178,6 +178,8 @@ const val = U32.sin(angle); // Returns result mapped to U32 range
 ### 📂 FileSystem
 Interface `FileSystem_Interface`. Classes: `BunFileSystem`, `NodeFileSystem`, `MemoryFileSystem`.
 
+All FileSystem classes accept an optional `logGroup` parameter in their constructor to specify a custom logging group for error messages.
+
 | Method | Returns | Description |
 | :--- | :--- | :--- |
 | `readFile(path)` | `Promise<Buffer>` | Read file as buffer. |

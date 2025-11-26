@@ -4,8 +4,9 @@ import type { FileSystem_Interface, FileSystemNode, DirectoryNode, FileNode } fr
 export class FileSystem_Memory implements FileSystem_Interface {
     private root: DirectoryNode;
     private cwd: string;
+    private logGroup: Log.Group.ID;
 
-    constructor() {
+    constructor(logGroup?: Log.Group.ID) {
         this.root = {
             type: 'directory',
             name: '',
@@ -13,6 +14,7 @@ export class FileSystem_Memory implements FileSystem_Interface {
             modified: new Date()
         };
         this.cwd = '/';
+        this.logGroup = logGroup ?? Log.Group.preferred;
     }
 
     private resolvePath(filePath: string): { parent: DirectoryNode; name: string } | null {
@@ -64,8 +66,6 @@ export class FileSystem_Memory implements FileSystem_Interface {
             }
             current = child;
         }
-
-        Log.push(`Successfully created directory: ${dirPath}`, Log.DEBUG);
     }
 
     async readDir(dirPath: string): Promise<string[]> {
@@ -83,7 +83,6 @@ export class FileSystem_Memory implements FileSystem_Interface {
             throw new Error(`File not found: ${filePath}`);
         }
 
-        Log.push(`Successfully read file: ${filePath}`, Log.DEBUG);
         return node.content;
     }
 
@@ -108,10 +107,9 @@ export class FileSystem_Memory implements FileSystem_Interface {
             };
 
             parent.children.set(name, fileNode);
-            Log.push(`Successfully wrote file: ${filePath}`, Log.DEBUG);
             return true;
         } catch (error) {
-            Log.push(`Could not write file ${filePath}: ${(error as Error).message}`, Log.ERROR);
+            Log.push(`Could not write file ${filePath}: ${(error as Error).message}`, Log.ERROR, null, this.logGroup);
             return false;
         }
     }
@@ -121,7 +119,6 @@ export class FileSystem_Memory implements FileSystem_Interface {
         if (!node || node.type !== 'file') {
             throw new Error(`File not found: ${filePath}`);
         }
-        Log.push(`Successfully read file as text: ${filePath}`, Log.DEBUG);
         return node.content.toString('utf-8');
     }
 
@@ -146,7 +143,7 @@ export class FileSystem_Memory implements FileSystem_Interface {
     async remove(path: string, recursive: boolean = true): Promise<boolean> {
         const resolved = this.resolvePath(path);
         if (!resolved) {
-            Log.push(`Could not remove ${path}: path not found`, Log.WARN);
+            Log.push(`Could not remove ${path}: path not found`, Log.WARN, null, this.logGroup);
             return false;
         }
 
@@ -154,20 +151,18 @@ export class FileSystem_Memory implements FileSystem_Interface {
         const node = parent.children.get(name);
 
         if (!node) {
-            Log.push(`Could not remove ${path}: path not found`, Log.WARN);
+            Log.push(`Could not remove ${path}: path not found`, Log.WARN, null, this.logGroup);
             return false;
         }
 
         if (node.type === 'directory') {
             if (!recursive && node.children.size > 0) {
-                Log.push(`Could not remove directory ${path}: directory not empty`, Log.WARN);
+                Log.push(`Could not remove directory ${path}: directory not empty`, Log.WARN, null, this.logGroup);
                 return false;
             }
             parent.children.delete(name);
-            Log.push(`Successfully removed directory: ${path}`, Log.DEBUG);
         } else {
             parent.children.delete(name);
-            Log.push(`Successfully removed file: ${path}`, Log.DEBUG);
         }
 
         return true;
@@ -191,16 +186,14 @@ export class FileSystem_Memory implements FileSystem_Interface {
 
                 if (srcNode.type === 'file') {
                     await this.copyFileNode(srcNode, destPath);
-                    Log.push(`Successfully copied file from ${source} to ${destPath}`, Log.DEBUG);
                 } else if (srcNode.type === 'directory') {
                     await this.copyDirectoryRecursive(srcNode, destPath);
-                    Log.push(`Successfully copied directory from ${source} to ${destPath}`, Log.DEBUG);
                 }
             }
 
             return true;
         } catch (error) {
-            Log.push(`Could not copy from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${(error as Error).message}`, Log.ERROR);
+            Log.push(`Could not copy from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${(error as Error).message}`, Log.ERROR, null, this.logGroup);
             return false;
         }
     }
@@ -258,17 +251,15 @@ export class FileSystem_Memory implements FileSystem_Interface {
 
                 if (srcNode.type === 'directory') {
                     await this.streamDirectoryRecursive(srcNode, destFs, destPath);
-                    Log.push(`Successfully streamed directory from ${source} to ${destPath}`, Log.DEBUG);
                 } else {
                     const content = await this.readFile(source);
                     await destFs.writeFile(destPath, content);
-                    Log.push(`Successfully streamed file from ${source} to ${destPath}`, Log.DEBUG);
                 }
             }
 
             return true;
         } catch (error) {
-            Log.push(`Could not stream from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${(error as Error).message}`, Log.ERROR);
+            Log.push(`Could not stream from ${Array.isArray(src) ? src.join(', ') : src} to ${dest}: ${(error as Error).message}`, Log.ERROR, null, this.logGroup);
             return false;
         }
     }
