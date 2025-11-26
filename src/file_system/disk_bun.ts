@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import { Log } from '../log';
 import type { FileSystem_Interface } from './models';
+import * as fs from 'node:fs/promises'
 
 export class FileSystem_Bun implements FileSystem_Interface {
 
@@ -240,8 +241,7 @@ export class FileSystem_Bun implements FileSystem_Interface {
 
     async exist(path: string): Promise<boolean> {
         try {
-            const file = Bun.file(path);
-            await file.exists();
+            await fs.access(path);
             return true;
         } catch {
             return false;
